@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Number Checker</title>
+</head>
+<body>
+
+  <h2>enter ur age</h2>
+  <input type="number" id="ageInput">
+  <h2>1 = male 2 = female </h2>
+    <input type="number" id="genderInput">
+  <button onclick="checkgrade()">Checkgrade</button>
+
+  <p id="message"></p>
+
+  <script>
+    function checkgrade() {
+      let age = document.getElementById("ageInput").value;
+     let gender = document.getElementById("genderInput").value;
+      let message = "";
+      if (age >18 ) {
+        if(gender=1){
+            message ="your ticket is 25 dollars"
+        }
+        else if (gender = 2){
+            message="your ticket is 20 dollars because of your gender yes we are sexist"
+        }
+        else {
+            message="what are you doing lisen to instructions you stupid useless waste of oxegen"
+        }
+      } 
+       else if (age>11) {
+        if(gender=1){
+            message ="your ticket is 20 dollars"
+        }
+        else if (gender = 2){
+            message="your ticket is 15 dollars because of your gender yes we are sexist"
+        }
+        else {
+            message="what are you doing lisen to instructions you stupid useless waste of oxegen"
+     }
+    } else if  (age<11){
+        if(gender=1){
+            message ="your ticket is 15 dollars"
+        }
+        else if (gender = 2){
+            message="your ticket is 10 dollars because of your gender yes we are sexist"
+        }
+        else {
+            message="what are you doing lisen to instructions you stupid useless waste of oxegen"
+     }
+    }
+      document.getElementById("message").innerText = message;
+    }
+  </script>
+</body>
