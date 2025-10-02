@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Number Checker</title>
+</head>
+<body>
+
+  <h2>Enter your grade</h2>
+  <input type="number" id="numberInput">
+  <button onclick="checkgrade()">Checkgrade</button>
+
+  <p id="message"></p>
+
+  <script>
+    function checkgrade() {
+      let num = document.getElementById("numberInput").value;
+      let message = "";
+
+      if (num > 89) {
+        message = "great job tour still imperfect.";
+      } else if (num > 79) {
+        message = "b take it or leave it.";
+      } else if (num > 69) {
+        message = "b- still you fail in strict parents eyes.";
+      }  else if (num < 49) {
+        message = "failiure failiure failiure failiure failiure failiure failiure failiure failiure.";
+      } else {
+        message = "Please enter a valid number.";
+      }
+
+      document.getElementById("message").innerText = message;
+    }
+  </script>
+
+</body>
+</html>
