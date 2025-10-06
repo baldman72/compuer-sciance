@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Switcher</title>
+    <style>
+        body {
+            text-align: center;
+            padding: 50px;
+        }
+        img {
+            max-width: 300px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Image Switcher</h1>
+    <img id="myImage" src="img/download.jfif" alt="Image" />
+    <br><br>
+    <button onclick="switchImage()">Switch Image</button>
+
+    <script>
+        let currentImage = 1;
+
+        function switchImage() {
+            const img = document.getElementById('myImage');
+            if (currentImage === 1) {
+                img.src = 'img/meme1.jpg';
+                currentImage = 2;
+            } else {
+                img.src = 'img/download.jfif';
+                currentImage = 1;
+            }
+        }
+    </script>
+
+</body>
+</html>
