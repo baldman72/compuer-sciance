@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Country Flag Viewer</title>
+</head>
+<body>
+
+    <h2>Select a Country</h2>
+    <select id="countrySelect">
+        <option value="">--Select--</option>
+        <option value="USA">USA</option>
+        <option value="Canada">Canada</option>
+        <option value="i eat dog">china</option>
+        <option value="scammerheaven">India</option>
+        <option value="mamamia">italy</option>
+    </select>
+
+    <button onclick="showFlag()">Show Flag</button>
+
+    <div id="flagContainer" style="margin-top: 20px;"></div>
+
+    <script>
+        function showFlag() {
+            var country = document.getElementById("countrySelect").value;
+            var flagContainer = document.getElementById("flagContainer");
+
+            if (country === "USA") {
+                flagContainer.innerHTML = '<img src="img/usa.png" width="150" alt="USA Flag">';
+            } else if (country === "Canada") {
+                flagContainer.innerHTML = '<img src="img/canada.png" width="150" alt="Canada Flag">';
+            } else if (country === "i eat dog") {
+                flagContainer.innerHTML = '<img src="img/chingchong.png" width="150" alt="Japan Flag">';
+            }else if (country === "scammerheaven") {
+                flagContainer.innerHTML = '<img src="img/india.png" width="150" alt="Japan Flag">';
+            }else if (country === "mamamia") {
+                flagContainer.innerHTML = '<img src="img/mamamia.png" width="150" alt="Japan Flag">';
+            }  else {
+                flagContainer.innerHTML = 'Please select a country.';
+            }
+        }
+    </script>
+
+</body>
+</html>
