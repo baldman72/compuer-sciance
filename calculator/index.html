@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animated Calculator with Random Sounds</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-image: url(bubux.png);
+    }
+    .calculator {
+      background: #1e272e;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      width: 300px;
+    }
+    .display {
+      background: #000;
+      color: #0f0;
+      font-size: 2rem;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: right;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    button {
+      background: burlywood;
+      color: #fff;
+      font-size: 1.2rem;
+      border: none;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background: #40739e;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,30.3);
+    }
+    button:active {
+      transform: scale(0.95);
+      background: #273c75;
+    }
+    .operator {
+      background: #718093;
+    }
+    .operator:hover {
+      background: #44bd32;
+    }
+    .equals {
+      background: #e1b12c;
+      grid-column: span 2;
+    }
+    .equals:hover {
+      background: #fbc531;
+    }
+    .clear {
+      background: #c23616;
+    }
+    .clear:hover {
+      background: #e84118;
+    }
+  </style>
+</head>
+<body>
+ 
+  <div class="calculator">
+    <div class="display" id="display">0</div>
+    <div class="buttons">
+      <button class="clear" onclick="playRandomClick(); clearDisplay()">C</button>
+      <button onclick="playRandomClick(); appendValue('(')">(</button>
+      <button onclick="playRandomClick(); appendValue(')')">)</button>
+      <button class="operator" onclick="playRandomClick(); appendValue('/')">÷</button>
+
+      <button onclick="playRandomClick(); appendValue('7')">7</button>
+      <button onclick="playRandomClick(); appendValue('8')">8</button>
+      <button onclick="playRandomClick(); appendValue('9')">9</button>
+      <button class="operator" onclick="playRandomClick(); appendValue('*')">×</button>
+
+      <button onclick="playRandomClick(); appendValue('4')">4</button>
+      <button onclick="playRandomClick(); appendValue('5')">5</button>
+      <button onclick="playRandomClick(); appendValue('6')">6</button>
+      <button class="operator" onclick="playRandomClick(); appendValue('-')">−</button>
+
+      <button onclick="playRandomClick(); appendValue('1')">1</button>
+      <button onclick="playRandomClick(); appendValue('2')">2</button>
+      <button onclick="playRandomClick(); appendValue('3')">3</button>
+      <button class="operator" onclick="playRandomClick(); appendValue('+')">+</button>
+
+      <button onclick="playRandomClick(); appendValue('0')">0</button>
+      <button onclick="playRandomClick(); appendValue('.')">.</button>
+      <button class="equals" onclick="playRandomClick(); calculateResult()">=</button>
+    </div>
+  </div>
+
+
+  <audio id="click1" src="boom-sfx-made-with-Voicemod.mp3" preload="auto"></audio>
+  <audio id="click2" src="computer-mouse-click-352734.mp3" preload="auto"></audio>
+  <audio id="click3" src="computer-mouse-click-352734.mp3" preload="auto"></audio>
+  <audio id="click4" src="computer-mouse-click-352734.mp3" preload="auto"></audio>
+
+  <script>
+    const display = document.getElementById('display');
+
+
+    const sounds = [
+      document.getElementById('click1'),
+      document.getElementById('click2'),
+      document.getElementById('click3'),
+      document.getElementById('click4')
+    ];
+
+    function playRandomClick() {
+      const sound = sounds[Math.floor(Math.random() * sounds.length)];
+      sound.currentTime = 0; 
+      sound.play();
+    }
+
+    function appendValue(value) {
+      if (display.textContent === '0' && !isNaN(value)) {
+        display.textContent = value;
+      } else {
+        display.textContent += value;
+      }
+    }
+
+    function clearDisplay() {
+      display.textContent = '0';
+    }
+
+    function calculateResult() {
+      try {
+        const result = eval(display.textContent);
+        display.textContent = result;
+      } catch (error) {
+        display.textContent = 'Error';
+      }
+    }
+    //if you read this you are gay and like clash royale berserkers 
+  </script>
+
+</body>
+</html>
