@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Entry</title>
+</head>
+<body>
+    <h2>Add Student</h2>
+
+    <label>Name:</label>
+    <input type="text" id="name"><br><br>
+
+    <label>Age:</label>
+    <input type="number" id="age"><br><br>
+
+    <label>Grade:</label>
+    <input type="text" id="grade"><br><br>
+
+    <button onclick="addStudent()">Add Student</button>
+
+    <h3>Student List</h3>
+    <ul id="studentList"></ul>
+
+    <script>
+        // Constructor function for Student object
+        function Student(name, age, grade) {
+            this.name = name;
+            this.age = age;
+            this.grade = grade;
+        }
+
+        // Array to store student objects
+        let students = [];
+
+        // Function to add a new student
+        function addStudent() {
+            let name = document.getElementById("name").value;
+            let age = document.getElementById("age").value;
+            let grade = document.getElementById("grade").value;
+
+            // Create a new Student object
+            let student = new Student(name, age, grade);
+
+            // Add to the array
+            students.push(student);
+
+            // Refresh display
+            displayStudents();
+
+            // Clear inputs
+            document.getElementById("name").value = "";
+            document.getElementById("age").value = "";
+            document.getElementById("grade").value = "";
+        }
+
+        // Display all students in the list
+        function displayStudents() {
+            let list = document.getElementById("studentList");
+            list.innerHTML = ""; // clear old list
+
+            for (let i = 0; i < students.length; i++) {
+                let item = document.createElement("li");
+                item.textContent = students[i].name + " - Age: " +
+                                   students[i].age + ", Grade: " +
+                                   students[i].grade;
+                list.appendChild(item);
+            }
+        }
+    </script>
+</body>
+</html>
