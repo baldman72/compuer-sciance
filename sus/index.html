@@ -157,7 +157,25 @@ let tableData = [];
 
 function parseCSV(text) {
     let lines = text.trim().split("\n");
-    let headers = lines[0].split(",").map(h => h.trim());
+    let rawHeaders = lines[0].split(",").map(h => h.trim());
+
+    // canonical header mapping so code, form and SQL use consistent keys
+    const headerMap = {
+        'set name': 'Name',
+        'set id': 'ID',
+        'pieces': 'PieceCount',
+        'year': 'Year',
+        'price (msrp)': 'Price',
+        'price': 'Price',
+        'theme': 'Theme',
+        'pieces per dollar': 'PiecePerDollar',
+        'pieces per $': 'PiecePerDollar'
+    };
+
+    let headers = rawHeaders.map(h => {
+        let key = headerMap[h.toLowerCase()] || h.replace(/\s+/g, '');
+        return key;
+    });
 
     return lines.slice(1).map(line => {
         let values = line.split(",");
@@ -197,36 +215,105 @@ function renderTable() {
     document.getElementById("tableContainer").innerHTML = html;
 }
 
-// Simple SQL engine
+// Simple SQL engine (improved)
 function runSQL(sql) {
-    sql = sql.trim().toUpperCase();
+    let raw = (sql || "").trim();
+    let upper = raw.toUpperCase();
 
-    if (sql === "SELECT * FROM DATA") return tableData;
+    function normalizeName(s) {
+        return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
 
-    if (sql.includes("WHERE")) {
-        let condition = sql.split("WHERE")[1].trim();
-        let [col, op, value] = condition.split(" ");
-        value = value.replace(/'/g, "");
+    function findColumnKey(colName, data) {
+        data = data || tableData;
+        if (!data || data.length === 0) return null;
+        let cols = Object.keys(data[0]);
+        let target = normalizeName(colName);
+        let exact = cols.find(c => normalizeName(c) === target);
+        if (exact) return exact;
+        let contains = cols.find(c => normalizeName(c).includes(target) || target.includes(normalizeName(c)));
+        return contains || null;
+    }
 
-        return tableData.filter(r => {
-            let v = r[col];
-            if (!v) return false;
-            if (!isNaN(v)) v = parseFloat(v);
-            if (!isNaN(value)) value = parseFloat(value);
+    // parse SELECT columns (supports: SELECT * OR SELECT col1, col2 FROM data)
+    let selectMatch = raw.match(/^SELECT\s+(.+?)\s+FROM\s+DATA(\s|$)/i);
+    if (!selectMatch) return [{ Error: "Unsupported or malformed SQL (must start with SELECT ... FROM data)" }];
 
-            if (op === "=") return v == value;
-            if (op === ">") return v > value;
-            if (op === "<") return v < value;
+    let selectColsRaw = selectMatch[1].trim();
+    let isStar = selectColsRaw === "*";
+
+    // Start pipeline with full data
+    let dataset = Array.isArray(tableData) ? [...tableData] : [];
+
+    // WHERE
+    if (upper.includes("WHERE")) {
+        let whereIdx = upper.indexOf("WHERE");
+        let conditionRaw = raw.substring(whereIdx + 5).trim();
+        let m = conditionRaw.match(/^(.+?)\s*(=|>|<)\s*(.+)$/);
+        if (!m) return [{ Error: "Malformed WHERE clause" }];
+
+        let colRaw = m[1].trim().replace(/^[`\"]|[`\"]$/g, "");
+        let op = m[2];
+        let valueRaw = m[3].trim().replace(/^['\"]|['\"]$/g, "");
+
+        let colKey = findColumnKey(colRaw, dataset);
+        if (!colKey) return [];
+
+        dataset = dataset.filter(r => {
+            let v = r[colKey];
+            if (v == null) return false;
+            let vNorm = ("" + v).replace(/[$,]/g, "");
+            let valNorm = ("" + valueRaw).replace(/[$,]/g, "");
+            let numV = parseFloat(vNorm);
+            let numVal = parseFloat(valNorm);
+            let useNum = !isNaN(numV) && !isNaN(numVal);
+
+            if (useNum) {
+                if (op === "=") return numV == numVal;
+                if (op === ">") return numV > numVal;
+                if (op === "<") return numV < numVal;
+            } else {
+                if (op === "=") return ("" + v).toLowerCase() == valueRaw.toLowerCase();
+                if (op === ">") return ("" + v) > valueRaw;
+                if (op === "<") return ("" + v) < valueRaw;
+            }
             return false;
         });
     }
 
-    if (sql.includes("ORDER BY")) {
-        let col = sql.split("ORDER BY")[1].trim();
-        return [...tableData].sort((a,b) => (a[col] > b[col] ? -1 : 1));
+    // ORDER BY
+    if (upper.includes("ORDER BY")) {
+        let idx = upper.indexOf("ORDER BY");
+        // take text after ORDER BY up to end (simple support, ignores ASC/DESC)
+        let colRaw = raw.substring(idx + 8).trim().split(/\s+/)[0];
+        let colKey = findColumnKey(colRaw, dataset);
+        if (colKey) {
+            dataset.sort((a,b) => {
+                let av = a[colKey], bv = b[colKey];
+                let an = parseFloat((""+av).replace(/[$,]/g, "")), bn = parseFloat((""+bv).replace(/[$,]/g, ""));
+                if (!isNaN(an) && !isNaN(bn)) return bn - an; // numeric desc
+                if (av === bv) return 0;
+                return (av < bv) ? 1 : -1;
+            });
+        }
     }
 
-    return [{ Error: "Unsupported SQL" }];
+    // Projection: select specific columns
+    if (!isStar) {
+        // split by comma and map to actual keys
+        let colsRequested = selectColsRaw.split(',').map(s => s.trim());
+        let projected = dataset.map(row => {
+            let obj = {};
+            colsRequested.forEach(colReq => {
+                let key = findColumnKey(colReq, dataset) || colReq;
+                obj[colReq] = row[key];
+            });
+            return obj;
+        });
+        return projected;
+    }
+
+    return dataset;
 }
 
 // ADD NEW ROW
@@ -256,12 +343,43 @@ document.getElementById("addBtn").addEventListener("click", function () {
 document.getElementById("runSqlBtn").addEventListener("click", function () {
     let sql = document.getElementById("sqlInput").value;
     let result = runSQL(sql);
+    // Update table with SQL result and show spreadsheet-style output in resultBox
+    let resultBox = document.getElementById("resultBox");
 
-    // Update table with SQL result
-    tableData = Array.isArray(result) ? result : [];
-    renderTable();
+    if (Array.isArray(result)) {
+        // render HTML table for spreadsheet-like view
+        if (result.length === 0) {
+            resultBox.innerHTML = "<i>No matching rows.</i>";
+        } else {
+            // collect all column keys (union of keys across rows)
+            let cols = Array.from(result.reduce((s, row) => {
+                Object.keys(row || {}).forEach(k => s.add(k));
+                return s;
+            }, new Set()));
 
-    document.getElementById("resultBox").innerText = JSON.stringify(result, null, 2);
+            let html = "<table><thead><tr>";
+            cols.forEach(c => html += `<th>${c}</th>`);
+            html += "</tr></thead><tbody>";
+            result.forEach(row => {
+                html += "<tr>";
+                cols.forEach(c => html += `<td>${row[c] ?? ""}</td>`);
+                html += "</tr>";
+            });
+            html += "</tbody></table>";
+            resultBox.innerHTML = html;
+        }
+
+        tableData = result;
+        renderTable();
+    } else if (result && result.Error) {
+        resultBox.innerText = "Error: " + result.Error;
+        tableData = [];
+        renderTable();
+    } else {
+        resultBox.innerText = JSON.stringify(result, null, 2);
+        tableData = Array.isArray(result) ? result : [];
+        renderTable();
+    }
 });
 
 document.querySelectorAll(".prebuilt").forEach(btn => {
