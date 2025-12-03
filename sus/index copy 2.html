@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Built‑In CSV + SQL Runner</title>
+    <style>
+        body { font-family: Arial; background: #fcf9d6; padding: 20px; }
+        input[type=text] { width: 120px; margin-right: 5px; }
+        button { padding: 8px 14px; margin: 5px; background: #c7dfd1; border-radius: 6px; }
+        #resultBox { width: 100%; height: 200px; background: white; border: 1px solid black; overflow: auto; }
+        #tableContainer { max-height: 200px; overflow: auto; border:1px solid #444; background:white; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #aaa; padding: 6px; text-align: left; }
+        .prebuiltBox { margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h2>Built‑In LEGO CSV</h2>
+<p>This page loads the CSV automatically — no upload required.</p>
+
+<!-- Input Fields -->
+<div>
+    <input type="text" id="nameField" placeholder="Name (max 25)">
+    <input type="text" id="idField" placeholder="ID">
+    <input type="text" id="pieceField" placeholder="Piece Count">
+    <input type="text" id="yearField" placeholder="Year">
+    <input type="text" id="priceField" placeholder="Price">
+    <input type="text" id="themeField" placeholder="Theme">
+    <input type="text" id="ppField" placeholder="Piece per $">
+    <button id="addBtn">Create New</button>
+</div>
+
+<br>
+
+<div id="tableContainer"></div>
+<br>
+
+<!-- SQL Runner -->
+<textarea id="sqlInput" style="width:300px;height:120px;"></textarea>
+<button id="runSqlBtn" style="background:#bfe1d4;font-size:16px;">Run SQL</button>
+<div id="resultBox"></div>
+
+<h3>Prebuilt SQL Queries</h3>
+<div class="prebuiltBox">
+    <button class="prebuilt" data-sql="SELECT * FROM data">Show All</button>
+    <button class="prebuilt" data-sql="SELECT * FROM data WHERE Price > 100">Sets Price > 100</button>
+    <button class="prebuilt" data-sql="SELECT * FROM data WHERE Year > 2020">Newer Than 2020</button>
+    <button class="prebuilt" data-sql="SELECT Name, Theme FROM data">Names & Themes</button>
+    <button class="prebuilt" data-sql="SELECT * FROM data ORDER BY PieceCount DESC">Sort by Piece Count</button>
+    <button class="prebuilt" data-sql="SELECT * FROM data ORDER BY Price DESC">Sort by Price</button>
+    <button class="prebuilt" data-sql="SELECT * FROM data WHERE Theme = 'Star Wars'">Theme = Star Wars</button>
+    <button class="prebuilt" data-sql="SELECT * FROM data WHERE PiecePerDollar < 10">Best Value Sets</button>
+</div>
+
+<script>
+// BUILT‑IN CSV CONTENT (from uploaded file)
+let builtInCSV = `Name,ID,PieceCount,Year,Price,Theme,PiecePerDollar
+Millennium Falcon (UCS),75192,7541,2017,$799.99,Star Wars,9.43
+Hogwarts Castle,71043,6020,2018,$399.99,Harry Potter,15.05
+Ninjago City,70620,4867,2017,$299.99,Ninjago,16.22
+Assembly Square,10255,4002,2017,$279.99,Creator Expert,14.29
+The Lord of the Rings: Rivendell,10316,6167,2023,$499.99,LOTR,12.33
+Death Star (Playset),75159,4016,2016,$499.99,Star Wars,8.03
+Colosseum,10276,9036,2020,$549.99,Icons,16.43
+Roman Colosseum (Architecture),21044,1036,2019,$99.99,Architecture,10.36
+The Daily Bugle,76178,3772,2021,$349.99,Marvel,10.77
+Ghostbusters Firehouse HQ,75827,4634,2016,$349.99,Ghostbusters,13.24
+NASA Apollo Saturn V,21309,1969,2017,$119.99,Ideas,16.41
+Imperial Star Destroyer (UCS),75252,4784,2019,$699.99,Star Wars,6.84
+Titanic,10294,9090,2021,$679.99,Icons,13.37
+Eiffel Tower,10307,10001,2022,$629.99,Icons,15.87
+Technic Liebherr R 9800,42100,4108,2019,$449.99,Technic,9.13
+Elf Club House,10275,1197,2020,$99.99,Winter Village,11.97
+Gingerbread House,10267,1477,2019,$99.99,Winter Village,14.78
+Minecraft Mountain Cave,21137,2863,2017,$249.99,Minecraft,11.45
+Minecraft Village,21128,1600,2016,$199.99,Minecraft,8
+Minecraft Ocean Monument,21136,1122,2017,$119.99,Minecraft,9.35
+Technic Porsche 911 GT3 RS,42056,2704,2016,$299.99,Technic,9.01
+Technic Bugatti Chiron,42083,3599,2018,$349.99,Technic,10.29
+Technic Lamborghini Sián,42115,3696,2020,$379.99,Technic,9.72
+Technic Ferrari Daytona SP3,42143,3778,2022,$449.99,Technic,8.39
+Technic BMW M 1000 RR,42130,1920,2021,$229.99,Technic,8.35
+Friends Heartlake City Resort,41347,1017,2018,$99.99,Friends,10.17
+Friends Tree House,41703,1114,2022,$79.99,Friends,13.92
+Friends Main Street Building,41704,1682,2022,$159.99,Friends,10.51
+Creator Expert Ferris Wheel,10247,2464,2015,$199.99,Creator Expert,12.32
+Creator Expert Carousel,10257,2670,2017,$199.99,Creator Expert,13.35`; // Paste the actual CSV rows after this line.
+
+// In‑memory database
+let tableData = [];
+
+function parseCSV(text) {
+    let lines = text.trim().split("\n");
+    let headers = lines[0].split(",").map(h => h.trim());
+
+    return lines.slice(1).map(line => {
+        let values = line.split(",");
+        let obj = {};
+        headers.forEach((h,i)=> obj[h] = values[i] ? values[i].trim() : "");
+        return obj;
+    });
+}
+
+function renderTable() {
+    if (tableData.length === 0) {
+        document.getElementById("tableContainer").innerHTML = "<i>No data loaded.</i>";
+        return;
+    }
+
+    let cols = Object.keys(tableData[0]);
+
+    let nameCol = cols.find(c => c.toLowerCase() === "name");
+    let idCol   = cols.find(c => c.toLowerCase() === "id");
+
+    let ordered = [];
+    if (nameCol) ordered.push(nameCol);
+    if (idCol) ordered.push(idCol);
+    cols.forEach(c => { if (c !== nameCol && c !== idCol) ordered.push(c); });
+
+    let html = "<table><tr>";
+    ordered.forEach(c => html += `<th>${c}</th>`);
+    html += "</tr>";
+
+    tableData.forEach(row => {
+        html += "<tr>";
+        ordered.forEach(c => html += `<td>${row[c] ?? ""}</td>`);
+        html += "</tr>";
+    });
+    html += "</table>";
+
+    document.getElementById("tableContainer").innerHTML = html;
+}
+
+// Simple SQL engine
+function runSQL(sql) {
+    sql = sql.trim().toUpperCase();
+
+    if (sql === "SELECT * FROM DATA") return tableData;
+
+    if (sql.includes("WHERE")) {
+        let condition = sql.split("WHERE")[1].trim();
+        let [col, op, value] = condition.split(" ");
+        value = value.replace(/'/g, "");
+
+        return tableData.filter(r => {
+            let v = r[col];
+            if (!v) return false;
+            if (!isNaN(v)) v = parseFloat(v);
+            if (!isNaN(value)) value = parseFloat(value);
+
+            if (op === "=") return v == value;
+            if (op === ">") return v > value;
+            if (op === "<") return v < value;
+            return false;
+        });
+    }
+
+    if (sql.includes("ORDER BY")) {
+        let col = sql.split("ORDER BY")[1].trim();
+        return [...tableData].sort((a,b) => (a[col] > b[col] ? -1 : 1));
+    }
+
+    return [{ Error: "Unsupported SQL" }];
+}
+
+// ADD NEW ROW
+window.onload = function() {
+    tableData = parseCSV(builtInCSV);
+    renderTable();
+};
+
+document.getElementById("addBtn").addEventListener("click", function () {
+    let name = document.getElementById("nameField").value;
+    if (name.length > 25) return alert("Name ≤ 25 chars");
+
+    let newRow = {
+        ID: document.getElementById("idField").value,
+        Name: name,
+        PieceCount: document.getElementById("pieceField").value,
+        Year: document.getElementById("yearField").value,
+        Price: document.getElementById("priceField").value,
+        Theme: document.getElementById("themeField").value,
+        PiecePerDollar: document.getElementById("ppField").value
+    };
+
+    tableData.push(newRow);
+    renderTable();
+});
+
+document.getElementById("runSqlBtn").addEventListener("click", function () {
+    let sql = document.getElementById("sqlInput").value;
+    let result = runSQL(sql);
+
+    // Update table with SQL result
+    tableData = Array.isArray(result) ? result : [];
+    renderTable();
+
+    document.getElementById("resultBox").innerText = JSON.stringify(result, null, 2);
+});
+
+document.querySelectorAll(".prebuilt").forEach(btn => {
+    btn.addEventListener("click", function () {
+        let sql = this.dataset.sql;
+        document.getElementById("sqlInput").value = sql;
+        document.getElementById("runSqlBtn").click();
+    });
+});
+
+</script>
+
+</body>
+</html>
+
+</body>
+</html>
